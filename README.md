@@ -90,19 +90,6 @@ Evaluated on 100 images (149 labels).
 - Room mapping and path planning for autonomous navigation.
 - Voice command support and other human-robot interaction methods.
 
-## Demo website
-
-The `index.html`, `style.css`, `script.js` and `assets/` files make up a static, frontend-only project website (plain HTML/CSS/JS, no build step) hosted with GitHub Pages:
-
-**https://trulyfalse.github.io/Autonomous-Rover-CSE499/**
-
-To preview it locally:
-
-```bash
-python3 -m http.server 8000
-# then open http://localhost:8000
-```
-
 ## Team
 
 - Abrar Ur Alam
