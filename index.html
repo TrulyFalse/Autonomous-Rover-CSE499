@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TARS — Smart Transport And Retrieval System</title>
+<meta name="description" content="TARS is an autonomous rover with a 4-DoF arm that detects, picks up and returns objects using YOLOv5s on a Raspberry Pi Zero 2 W. NSU senior design project, Spring 2025.">
+<meta property="og:title" content="TARS — Smart Transport And Retrieval System">
+<meta property="og:description" content="An autonomous rover that finds, grabs and returns objects. YOLOv5s · Inverse kinematics · Raspberry Pi.">
+<meta property="og:image" content="assets/rover.webp">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script>document.documentElement.classList.add('js')</script>
+</head>
+<body>
+
+<!-- progress bar -->
+<div class="progress" id="progress"></div>
+
+<!-- NAV -->
+<header class="nav">
+  <a href="#hero" class="brand"><span class="dot"></span>tars</a>
+  <div class="nav-mid mono">Autonomous Rover · Tech Demo</div>
+  <nav class="nav-links mono" id="navLinks">
+    <a href="#demo">Demo</a>
+    <a href="#hardware">Hardware</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#results">Results</a>
+    <a href="#impact">Impact</a>
+    <a href="#team">Team</a>
+  </nav>
+  <button class="menu-btn mono" id="menuBtn" aria-label="Toggle menu">menu</button>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="grid-bg"></div>
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="tag mono">[ Senior Design Project · CSE499B · NSU ]</p>
+      <h1>Smart Transport <br>And <span class="accent">Retrieval</span> System</h1>
+      <p class="lead">An autonomous rover with a camera-guided robotic arm. Say the word — it finds the object, picks it up, and brings it back to where it started.</p>
+      <div class="cta-row">
+        <a class="btn primary" href="#demo">▶ Watch the demo</a>
+        <a class="btn" href="https://drive.google.com/file/d/1x4nU5dVO1PKBptkkQc-nvLlIwuIzyJZN/view?usp=sharing" target="_blank" rel="noopener">Final Report ↗</a>
+        <a class="btn" href="https://github.com/TrulyFalse/Autonomous-Rover-CSE499" target="_blank" rel="noopener">GitHub Repo ↗</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="rover-wrap">
+        <img src="assets/rover.webp" alt="The TARS rover: a four-wheel chassis with an orange 4-DoF robotic arm, ultrasonic sensor and camera" class="rover">
+        <div class="scanline"></div>
+        <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      </div>
+      <p class="mono caption">[ TARS · Raspberry Pi Zero 2 W · 4-DoF arm · HC-SR04 ]</p>
+    </div>
+  </div>
+  <div class="scroll-hint mono">Scroll down <span>↓</span></div>
+</section>
+
+<!-- MARQUEE
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track mono">
+    <span>Detect</span><span>•</span><span>Align</span><span>•</span><span>Approach</span><span>•</span><span>Fetch</span><span>•</span><span>Return</span><span>•</span><span>Place</span><span>•</span>
+    <span>Detect</span><span>•</span><span>Align</span><span>•</span><span>Approach</span><span>•</span><span>Fetch</span><span>•</span><span>Return</span><span>•</span><span>Place</span><span>•</span>
+  </div>
+</div> -->
+
+<!-- INTRO / STATS -->
+<section class="section" id="overview">
+  <div class="sec-head reveal"><span class="num mono">01</span><h2>Overview</h2></div>
+  <div class="two-col">
+    <div class="reveal">
+      <p class="big">Autonomous retrieval, on a <em>low-cost</em> embedded platform.</p>
+      <p class="muted">Autonomous object retrieval has real value in logistics, healthcare and assistive robotics — but most systems either live in simulation or need heavy hardware. TARS combines a car-like mobile base, a camera-equipped 4-DoF arm and a lightweight deep-learning detector into one closed-loop system that runs on a Raspberry Pi Zero 2 W.</p>
+      <p class="muted">The user issues a command — “start”, “stop”, or the name of an object — from a web interface. The rover scans its surroundings, identifies the target, aligns to it, drives up to about 10&nbsp;cm, uses inverse kinematics to pick it up, then returns to its starting point and puts it down.</p>
+    </div>
+    <div class="stats reveal">
+      <div class="stat"><span class="mono lbl">[ mAP@0.5 ]</span><b data-count="0.978" data-dec="3">0.978</b></div>
+      <div class="stat"><span class="mono lbl">[ Precision ]</span><b data-count="0.97" data-dec="2">0.97</b></div>
+      <div class="stat"><span class="mono lbl">[ Recall ]</span><b data-count="0.922" data-dec="3">0.922</b></div>
+      <div class="stat"><span class="mono lbl">[ Training images ]</span><b data-count="3000" data-dec="0" data-suffix="+">3000+</b></div>
+      <div class="stat"><span class="mono lbl">[ Degrees of freedom ]</span><b data-count="4" data-dec="0">4</b></div>
+      <div class="stat"><span class="mono lbl">[ Est. budget ]</span><b>≈11.5k <small>tk</small></b></div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO VIDEO -->
+<section class="section dark2" id="demo">
+  <div class="sec-head reveal"><span class="num mono">02</span><h2>Project Demo</h2></div>
+  <div class="video-shell reveal">
+    <div class="video-bar mono"><span>[ TARS · live run ]</span><span class="rec"><i></i> REC</span></div>
+    <div class="video-frame">
+      <iframe src="https://drive.google.com/file/d/1dZosNfNi_3MgYP8vj880wdnZzely6XjG/preview" title="TARS project demo video" allow="autoplay; fullscreen" allowfullscreen loading="lazy"></iframe>
+    </div>
+    <div class="video-foot">
+      <p class="muted">If the video doesn’t load here, open it directly on Google Drive.</p>
+      <a class="btn small" href="https://drive.google.com/file/d/1dZosNfNi_3MgYP8vj880wdnZzely6XjG/view?usp=sharing" target="_blank" rel="noopener">Open video ↗</a>
+    </div>
+  </div>
+
+  <div class="link-cards reveal">
+    <a class="link-card" href="https://drive.google.com/file/d/1x4nU5dVO1PKBptkkQc-nvLlIwuIzyJZN/view?usp=sharing" target="_blank" rel="noopener">
+      <span class="mono lbl">[ document ]</span>
+      <h3>Read the Final Report</h3>
+      <p>Full methodology, experiments, budget and analysis (CSE499B).</p>
+      <span class="arrow">↗</span>
+    </a>
+    <a class="link-card" href="https://github.com/TrulyFalse/Autonomous-Rover-CSE499" target="_blank" rel="noopener">
+      <span class="mono lbl">[ source ]</span>
+      <h3>Browse the Code</h3>
+      <p>Flask servers, detection pipeline and robot control on GitHub.</p>
+      <span class="arrow">↗</span>
+    </a>
+  </div>
+</section>
+
+<!-- HARDWARE -->
+<section class="section" id="hardware">
+  <div class="sec-head reveal"><span class="num mono">03</span><h2>Hardware</h2></div>
+  <div class="hw-intro two-col">
+    <p class="big reveal">Everything fits on one compact chassis.</p>
+    <p class="muted reveal">The Raspberry Pi Zero 2 W is the single onboard brain: it reads the camera and distance sensor and drives the motors and servos. Motors get their own battery pack, separate from the Pi’s power bank.</p>
+  </div>
+
+  <div class="parts">
+    <article class="part reveal">
+      <div class="part-img"><img src="assets/rpi.webp" alt="Raspberry Pi Zero 2 W" loading="lazy"></div>
+      <span class="mono lbl">[ compute ]</span>
+      <h3>Raspberry Pi Zero 2 W</h3>
+      <p>1&nbsp;GHz quad-core ARM Cortex-A53, 512&nbsp;MB RAM, Wi-Fi and a 40-pin GPIO header. Runs control logic and the video stream.</p>
+    </article>
+    <article class="part reveal">
+      <div class="part-img"><img src="assets/cam.webp" alt="Raspberry Pi Camera Rev 1.3" loading="lazy"></div>
+      <span class="mono lbl">[ vision ]</span>
+      <h3>Pi Camera Rev 1.3</h3>
+      <p>5&nbsp;MP module on the CSI port. Feeds the live frames used for object detection and scanning.</p>
+    </article>
+    <article class="part reveal">
+      <div class="part-img"><img src="assets/servo.webp" alt="SG90 micro servo" loading="lazy"></div>
+      <span class="mono lbl">[ arm ]</span>
+      <h3>4× SG90 micro servos</h3>
+      <p>One per joint of the 4-DoF arm. 180° rotation, 2.0–2.2&nbsp;kg/cm torque, about 9–10.5&nbsp;g each.</p>
+    </article>
+    <article class="part reveal">
+      <div class="part-img"><img src="assets/motor.webp" alt="BO DC motor" loading="lazy"></div>
+      <span class="mono lbl">[ drive ]</span>
+      <h3>4× BO DC motors</h3>
+      <p>1:48 gearing, ≈208&nbsp;RPM at 5&nbsp;V. Move the four-wheel base.</p>
+    </article>
+    <article class="part reveal">
+      <div class="part-img"><img src="assets/l293.webp" alt="L293D motor driver shield" loading="lazy"></div>
+      <span class="mono lbl">[ driver ]</span>
+      <h3>L293D motor driver</h3>
+      <p>Four-channel driver that simplifies speed and direction control of the DC motors.</p>
+    </article>
+    <article class="part reveal">
+      <div class="part-img"><img src="assets/sonar.webp" alt="HC-SR04 ultrasonic sensor" loading="lazy"></div>
+      <span class="mono lbl">[ ranging ]</span>
+      <h3>HC-SR04 ultrasonic</h3>
+      <p>2–400&nbsp;cm range. Tells the rover when it’s about 10&nbsp;cm from the target.</p>
+    </article>
+  </div>
+
+  <div class="power reveal">
+    <span class="mono lbl">[ power ]</span>
+    <p>5000&nbsp;mAh power bank (5&nbsp;V) for the Pi · three 18650 Li-ion cells (3.7&nbsp;V, 3000&nbsp;mAh) for the motors and servos.</p>
+  </div>
+
+  <div class="fig-row">
+    <figure class="fig reveal light slim">
+      <img src="assets/pcb.webp" alt="Custom PCB design for the TARS system" loading="lazy" data-zoom>
+      <figcaption class="mono">Fig. — PCB design, green boxes lead to the Raspberry Pi pins</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section class="section dark2" id="pipeline">
+  <div class="sec-head reveal"><span class="num mono">04</span><h2>How it works</h2></div>
+
+  <p class="big reveal narrow">A closed loop from command to delivery.</p>
+
+  <div class="pipe">
+    <ol class="steps reveal" id="steps">
+      <li class="active" data-step="0"><span class="mono">01</span><div><h3>Choose the object</h3><p>Press Start Detection in the web interface and pick a target: paper ball, cup or eraser.</p></div></li>
+      <li data-step="1"><span class="mono">02</span><div><h3>Align toward it</h3><p>The rover rotates through repeated 360° scans until YOLOv5s spots the target, then lines up with it.</p></div></li>
+      <li data-step="2"><span class="mono">03</span><div><h3>Approach</h3><p>It drives forward until the HC-SR04 reads about 10&nbsp;cm — within the arm’s grasping range.</p></div></li>
+      <li data-step="3"><span class="mono">04</span><div><h3>Grasp</h3><p>Inverse kinematics computes the servo angles that swing the arm down and the claw closes on the object.</p></div></li>
+      <li data-step="4"><span class="mono">05</span><div><h3>Return &amp; release</h3><p>Holding the object, the rover drives back to its starting point and puts it down. A stop command can halt everything at any time.</p></div></li>
+    </ol>
+    <figure class="fig sticky stage reveal" id="stage">
+      <div class="stage-imgs">
+        <img class="on" src="assets/step1.webp" alt="Step 1: the TARS web interface with Start Detection and Paper Ball highlighted">
+        <img src="assets/step2.webp" alt="Step 2: the rover rotating to align toward a paper ball" loading="lazy">
+        <img src="assets/step3.webp" alt="Step 3: the rover approaching the paper ball, distance reading 10.2" loading="lazy">
+        <img src="assets/step4.webp" alt="Step 4: the arm reaching down to pick up the paper ball" loading="lazy">
+        <img src="assets/step5.webp" alt="Step 5: the arm holding the picked-up paper ball" loading="lazy">
+      </div>
+      <figcaption class="mono"><span id="stageCap">Step 1 / 5 — Choose the object</span></figcaption>
+    </figure>
+  </div>
+
+  <div class="arch">
+    <div class="sec-sub reveal"><span class="mono lbl">[ software ]</span><h3>Two-tier Flask architecture</h3></div>
+    <div class="arch-grid reveal">
+      <div class="node">
+        <span class="mono lbl">[ laptop ]</span>
+        <h4>Flask server</h4>
+        <ul><li>Hosts the web UI</li><li>Runs YOLOv5s detection</li><li>Sends commands</li></ul>
+      </div>
+      <div class="link-mid mono"><i></i><span>local network<br>commands ⇄ video</span><i></i></div>
+      <div class="node">
+        <span class="mono lbl">[ raspberry pi ]</span>
+        <h4>Flask server</h4>
+        <ul><li>Streams camera video</li><li>Drives motors &amp; servos via GPIO</li><li>Reads distance sensor</li></ul>
+      </div>
+    </div>
+    <div class="fig-row two">
+      <figure class="fig reveal light">
+        <img src="assets/flow.webp" alt="System flowchart" loading="lazy" data-zoom>
+        <figcaption class="mono">Fig. — System design flowchart</figcaption>
+      </figure>
+      <figure class="fig reveal light">
+        <img src="assets/ui.webp" alt="TARS web interface" loading="lazy" data-zoom>
+        <figcaption class="mono">Fig. — Frontend layout of the TARS web interface</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTS -->
+<section class="section" id="results">
+  <div class="sec-head reveal"><span class="num mono">05</span><h2>Results</h2></div>
+
+  <div class="two-col">
+    <div class="reveal">
+      <p class="big">A detector that’s <em>fast enough</em> for a Pi and accurate enough to trust.</p>
+      <p class="muted">YOLOv5s was trained for 25 epochs on 3000+ labeled 640×640 images (70:20:10 split) of a paper ball, an eraser and a paper cup, with heavy augmentation and a background class so look-alike objects aren’t mistaken for targets. Evaluated on 100 images with 149 labels.</p>
+    </div>
+    <div class="bars reveal" id="bars">
+      <h4 class="mono lbl">[ mAP@0.5 by class ]</h4>
+      <div class="bar"><span>Cup</span><div><i style="--w:99.2%"></i></div><b>0.992</b></div>
+      <div class="bar"><span>Paper ball</span><div><i style="--w:99.1%"></i></div><b>0.991</b></div>
+      <div class="bar"><span>Eraser</span><div><i style="--w:95.3%"></i></div><b>0.953</b></div>
+      <div class="bar all"><span>All classes</span><div><i style="--w:97.8%"></i></div><b>0.978</b></div>
+    </div>
+  </div>
+
+  <div class="table-wrap reveal">
+    <table>
+      <thead><tr><th>Class</th><th>Labels</th><th>Precision</th><th>Recall</th><th>mAP@0.5</th><th>mAP@0.5:0.95</th></tr></thead>
+      <tbody>
+        <tr class="all"><td>All</td><td>149</td><td>0.970</td><td>0.922</td><td>0.978</td><td>0.680</td></tr>
+        <tr><td>Cup</td><td>22</td><td>0.978</td><td>0.955</td><td>0.992</td><td>0.742</td></tr>
+        <tr><td>Eraser</td><td>52</td><td>1.000</td><td>0.826</td><td>0.953</td><td>0.575</td></tr>
+        <tr><td>Paper ball</td><td>75</td><td>0.933</td><td>0.987</td><td>0.991</td><td>0.724</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="fig-row three">
+    <figure class="fig reveal light">
+      <img src="assets/pred.webp" alt="Sample predictions of the trained model" loading="lazy" data-zoom>
+      <figcaption class="mono">Fig. — Model predictions</figcaption>
+    </figure>
+    <figure class="fig reveal light">
+      <img src="assets/loss.webp" alt="Training and validation loss graph" loading="lazy" data-zoom>
+      <figcaption class="mono">Fig. — Training / validation loss</figcaption>
+    </figure>
+    <figure class="fig reveal light">
+      <img src="assets/cm.webp" alt="Confusion matrix" loading="lazy" data-zoom>
+      <figcaption class="mono">Fig. — Confusion matrix</figcaption>
+    </figure>
+  </div>
+  <div class="fig-row">
+    <figure class="fig reveal light slim">
+      <img src="assets/label.webp" alt="Data labeling in Roboflow" loading="lazy" data-zoom>
+      <figcaption class="mono">Fig. — Dataset labeling in Roboflow</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- IMPACT -->
+<section class="section dark2" id="impact">
+  <div class="sec-head reveal"><span class="num mono">06</span><h2>Impact &amp; Applications</h2></div>
+  <div class="tabs reveal" id="tabs">
+    <div class="tab-list mono" role="tablist">
+      <button class="on" role="tab" data-tab="0">Assistive</button>
+      <button role="tab" data-tab="1">Industry</button>
+      <button role="tab" data-tab="2">Environment</button>
+      <button role="tab" data-tab="3">Education</button>
+    </div>
+    <div class="tab-body">
+      <div class="tab-panel on" data-panel="0">
+        <p class="big">Independence for people with limited mobility.</p>
+        <p class="muted">Fetching misplaced items or delivering supplies can support daily tasks for people with disabilities, and reduce risk where manual handling is difficult or dangerous.</p>
+        <div class="chips mono"><span>Smart homes</span><span>Healthcare</span><span>Service robotics</span></div>
+      </div>
+      <div class="tab-panel" data-panel="1">
+        <p class="big">Automating repetitive and hazardous handling.</p>
+        <p class="muted">The same detect-grasp-transport loop applies to manufacturing, warehousing and logistics, improving workplace safety and throughput.</p>
+        <div class="chips mono"><span>Logistics</span><span>Manufacturing</span><span>Warehousing</span></div>
+      </div>
+      <div class="tab-panel" data-panel="2">
+        <p class="big">Less waste, lower energy use.</p>
+        <p class="muted">Adapted for sorting in recycling facilities or selective harvesting in precision agriculture. Low-power parts and open-source software support greener, repairable designs.</p>
+        <div class="chips mono"><span>Recycling</span><span>Agriculture</span><span>SDG 9 · SDG 12</span></div>
+      </div>
+      <div class="tab-panel" data-panel="3">
+        <p class="big">A hands-on platform for robotics + AI.</p>
+        <p class="muted">Bridges embedded systems, computer vision, control and machine learning on affordable hardware — making advanced projects reachable in resource-limited settings.</p>
+        <div class="chips mono"><span>STEM education</span><span>Open-source</span><span>SDG 4</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PLAN / LIMITS -->
+<section class="section" id="plan">
+  <div class="sec-head reveal"><span class="num mono">07</span><h2>Plan, Limits &amp; Next Steps</h2></div>
+  <div class="three-col">
+    <div class="card reveal">
+      <span class="mono lbl">[ timeline ]</span>
+      <h3>7 weeks, overlapping</h3>
+      <ul class="tl">
+        <li><b>Wk 1</b> Planning</li>
+        <li><b>Wk 2–3</b> Building the model</li>
+        <li><b>Wk 3–4</b> Building hardware</li>
+        <li><b>Wk 5–6</b> Back-end &amp; integration</li>
+        <li><b>Wk 6–7</b> Debug, test &amp; write-up</li>
+      </ul>
+    </div>
+    <div class="card reveal">
+      <span class="mono lbl">[ budget ]</span>
+      <h3>≈ 11,500 tk</h3>
+      <ul class="tl">
+        <li><b>8,000</b> Raspberry Pi Zero 2 W</li>
+        <li><b>1,190</b> Robotic arm</li>
+        <li><b>1,000</b> Camera</li>
+        <li><b>1,000</b> Motor drivers</li>
+        <li><b>500</b> Power adapter</li>
+      </ul>
+      <p class="muted sm">ML training used free GPUs and open-source tools.</p>
+    </div>
+    <div class="card reveal">
+      <span class="mono lbl">[ limitations ]</span>
+      <h3>What it can’t do yet</h3>
+      <ul class="tl plain">
+        <li>Detection depends on training-data diversity and lighting</li>
+        <li>Arm reach, payload and DoF limit object size</li>
+        <li>Pi Zero processing can add latency</li>
+        <li>Needs careful calibration</li>
+      </ul>
+    </div>
+  </div>
+  <div class="future reveal">
+    <span class="mono lbl">[ future work ]</span>
+    <p class="big">Room mapping and path planning for autonomous navigation, plus voice commands for more natural human-robot interaction.</p>
+  </div>
+  <div class="fig-row">
+    <figure class="fig reveal light slim">
+      <img src="assets/gantt.webp" alt="Gantt chart of the estimated workflow" loading="lazy" data-zoom>
+      <figcaption class="mono">Fig. — Gantt chart of estimated workflow</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="section dark2" id="team">
+  <div class="sec-head reveal"><span class="num mono">08</span><h2>Team</h2></div>
+  <div class="team">
+    <div class="member reveal"><span class="mono">AU</span><h4>Abrar Ur Alam</h4></div>
+    <div class="member reveal"><span class="mono">HB</span><h4>Hasan Bin Omar</h4></div>
+    <div class="member reveal"><span class="mono">MA</span><h4>Mahbub Mokaddes Akash</h4></div>
+    <div class="member reveal"><span class="mono">AJ</span><h4>Abdullah Mohammad Muntasir Adnan Jami</h4></div>
+  </div>
+  <div class="advisor reveal">
+    <span class="mono lbl">[ faculty advisor ]</span>
+    <h3>Md. Shahriar Hussain</h3>
+    <p class="muted">Senior Lecturer, Department of Electrical and Computer Engineering, North South University</p>
+  </div>
+</section>
+
+</main>
+
+<footer class="footer">
+  <div class="foot-cta reveal">
+    <h2>See it. Read it. Build on it.</h2>
+    <div class="cta-row center">
+      <a class="btn primary" href="https://drive.google.com/file/d/1x4nU5dVO1PKBptkkQc-nvLlIwuIzyJZN/view?usp=sharing" target="_blank" rel="noopener">Final Report ↗</a>
+      <a class="btn" href="https://github.com/TrulyFalse/Autonomous-Rover-CSE499" target="_blank" rel="noopener">Code Repository ↗</a>
+      <a class="btn" href="https://drive.google.com/file/d/1dZosNfNi_3MgYP8vj880wdnZzely6XjG/view?usp=sharing" target="_blank" rel="noopener">Demo Video ↗</a>
+    </div>
+  </div>
+  <div class="foot-meta mono">
+    <span>Department of Electrical and Computer Engineering · North South University</span>
+    <span>Senior Design Project · Spring 2025</span>
+  </div>
+</footer>
+
+<!-- lightbox -->
+<div class="lightbox" id="lightbox" aria-hidden="true"><img alt=""><button class="mono" aria-label="Close">close ✕</button></div>
+
+<script src="script.js"></script>
+</body>
+</html>
