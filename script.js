@@ -110,4 +110,68 @@
   function closeLb() { lb.classList.remove('open'); lb.setAttribute('aria-hidden', 'true'); }
   lb.addEventListener('click', closeLb);
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLb(); });
+  // demo links: scroll the whole player into view, then autoplay
+  var demoSec = document.getElementById('demo');
+  var demoShell = demoSec && demoSec.querySelector('.video-shell');
+  var demoVideo = demoSec && demoSec.querySelector('video');
+  var NAV_H = 72, EDGE = 16;
+
+  function absTop(el) { // layout position, ignores transforms (e.g. .reveal offset)
+    var y = 0;
+    while (el) { y += el.offsetTop; el = el.offsetParent; }
+    return y;
+  }
+  function demoTarget() {
+    var vh = window.innerHeight;
+    var secPad = parseFloat(getComputedStyle(demoSec).paddingTop) || 0;
+    var shellTop = absTop(demoShell), shellH = demoShell.offsetHeight;
+    // preferred: section heading just under the nav (same as the other anchors)
+    var y = absTop(demoSec) + secPad - NAV_H;
+    // if the player's bottom edge would be cut off, scroll further down
+    if (shellTop + shellH - y > vh - EDGE) y = shellTop + shellH - vh + EDGE;
+    // but never hide the player's top edge behind the nav
+    if (shellTop - y < NAV_H) y = shellTop - NAV_H;
+    var max = document.documentElement.scrollHeight - vh;
+    return Math.max(0, Math.min(y, max));
+  }
+  function whenScrollSettled(cb) {
+    var last = -1, still = 0, t0 = Date.now();
+    (function poll() {
+      var y = window.pageYOffset;
+      still = (y === last) ? still + 1 : 0;
+      last = y;
+      if (still >= 4 || Date.now() - t0 > 2500) cb(); else setTimeout(poll, 60);
+    })();
+  }
+  function playDemo(unlocked) {
+    if (!demoVideo) return;
+    if (demoVideo.ended) demoVideo.currentTime = 0;
+    unlocked.then(function () {
+      var p = demoVideo.play();
+      if (p && p.catch) p.catch(function () { // sound blocked -> start muted
+        demoVideo.muted = true;
+        demoVideo.play().catch(function () {});
+      });
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href="#demo"]');
+    if (!a || !demoSec || !demoShell) return;
+    e.preventDefault();
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: demoTarget(), behavior: reduce ? 'auto' : 'smooth' });
+    if (history.replaceState) history.replaceState(null, '', '#demo');
+    if (!demoVideo) return;
+    // "unlock" the element inside this click (needed by Safari/iOS), then start once in view
+    var unlocked = Promise.resolve();
+    if (demoVideo.paused) {
+      var wasMuted = demoVideo.muted, t = demoVideo.currentTime;
+      demoVideo.muted = true; // silent unlock, no audio blip
+      var u = demoVideo.play();
+      var restore = function () { demoVideo.pause(); demoVideo.currentTime = t; demoVideo.muted = wasMuted; };
+      unlocked = (u && u.then) ? u.then(restore).catch(function () { demoVideo.muted = wasMuted; }) : Promise.resolve();
+    }
+    whenScrollSettled(function () { playDemo(unlocked); });
+  });
 })();
